@@ -51,6 +51,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         val navHost = supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
-        b.bottomNav.setupWithNavController(navHost.navController)
+        val navController = navHost.navController
+        b.bottomNav.setupWithNavController(navController)
+
+        intent?.getIntExtra("navigate_to", -1)?.takeIf { it != -1 }?.let {
+            navController.navigate(it)
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        val navHost = supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
+        intent.getIntExtra("navigate_to", -1).takeIf { it != -1 }?.let {
+            navHost.navController.navigate(it)
+        }
     }
 }

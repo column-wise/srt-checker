@@ -37,8 +37,12 @@ class NotificationHelper @Inject constructor(
 
     fun buildWatchingNotification(summary: String): Notification {
         val pi = PendingIntent.getActivity(
-            ctx, 0, Intent(ctx, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
+            ctx, 0,
+            Intent(ctx, MainActivity::class.java).apply {
+                putExtra("navigate_to", R.id.watchListFragment)
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         return NotificationCompat.Builder(ctx, CHANNEL_WATCHING)
             .setSmallIcon(R.drawable.ic_train)
@@ -50,8 +54,11 @@ class NotificationHelper @Inject constructor(
     }
 
     fun notifySuccess(title: String, detail: String, url: String) {
+        val srtIntent = ctx.packageManager.getLaunchIntentForPackage("com.srail.www.srt")
+            ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+            ?: Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
         val pi = PendingIntent.getActivity(
-            ctx, 0, Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+            ctx, 0, srtIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val notif = NotificationCompat.Builder(ctx, CHANNEL_RESULT)

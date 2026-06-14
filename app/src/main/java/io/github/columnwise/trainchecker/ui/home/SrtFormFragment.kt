@@ -52,7 +52,7 @@ class SrtFormFragment : Fragment() {
 
         val seatTypes = listOf("일반실" to SeatType.GENERAL, "특실" to SeatType.SPECIAL, "상관없음" to SeatType.ANY)
         b.actvSeatType.setAdapter(noFilterAdapter(seatTypes.map { it.first }))
-        b.actvSeatType.setText("일반실", false)
+        b.actvSeatType.setText("상관없음", false)
 
         setupTimeDropdowns()
         setupDatePicker()
