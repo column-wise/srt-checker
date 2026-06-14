@@ -149,17 +149,20 @@ class TicketWatcherService : Service() {
     }
 
     private suspend fun attemptReserve(watchJob: WatchJob, tag: String): String? {
+        val now = java.util.Date()
+        val nowDate = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(now)
+        val nowHHmm = java.text.SimpleDateFormat("HHmm", java.util.Locale.getDefault()).format(now)
+        val effectiveTimeFrom = if (watchJob.date == nowDate && nowHHmm > watchJob.timeFrom)
+            nowHHmm else watchJob.timeFrom
         val trains = srtRepo.searchTrains(
             watchJob.depStation, watchJob.arrStation,
-            watchJob.date, watchJob.timeFrom,
+            watchJob.date, effectiveTimeFrom,
         )
-        AppLogger.log(tag, "SRT 조회 결과: ${trains.size}개 열차")
-        val nowTime = java.text.SimpleDateFormat("HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
-        val nowDate = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())
+        val trainTimes = trains.joinToString(", ") { t -> "${t.depTime.take(2)}:${t.depTime.substring(2,4)}" }
+        AppLogger.log(tag, "SRT 조회 결과: ${trains.size}개 열차 [$trainTimes]")
         val available = trains.filter {
             it.seatAvailable(watchJob.seatType) &&
-            (watchJob.timeTo.isEmpty() || it.depTime <= "${watchJob.timeTo}00") &&
-            (watchJob.date > nowDate || it.depTime > nowTime)
+            (watchJob.timeTo.isEmpty() || it.depTime <= "${watchJob.timeTo}00")
         }
         AppLogger.log(tag, "취소표 가능: ${available.size}개")
         val candidate = available.firstOrNull() ?: return null
