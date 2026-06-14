@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TrainChecker"
+rootProject.name = "SrtChecker"
 include(":app")

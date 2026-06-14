@@ -43,35 +43,6 @@
                     android:inputType="textPassword" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="KTX 계정"
-                android:textAppearance="?attr/textAppearanceTitleMedium" />
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="KTX 아이디">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etKtxId"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-            </com.google.android.material.textfield.TextInputLayout>
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="KTX 비밀번호"
-                app:endIconMode="password_toggle">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etKtxPw"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -20,6 +20,8 @@ data class SrtTrain(val raw: SrtTrainData) {
     fun waitAvailable() = raw.rsvWaitPsbCd == "9"
 }
 
+class SessionExpiredException(message: String) : Exception(message)
+
 sealed class SrtResult {
     data class Success(val reservationNo: String) : SrtResult()
     data class Error(val message: String) : SrtResult()
@@ -53,7 +55,10 @@ class SrtRepository @Inject constructor(
             depCode = depCode, arrCode = arrCode, netfunnelKey = key,
         )
         val result = resp.resultMap?.firstOrNull() ?: return emptyList()
-        if (result.strResult != "SUCC") return emptyList()
+        if (result.strResult != "SUCC") {
+            if ("로그인" in result.msgTxt) throw SessionExpiredException(result.msgTxt)
+            return emptyList()
+        }
         return resp.outDataSets?.dsOutput1
             ?.filter { it.stlbTrnClsfCd == "17" }
             ?.map { SrtTrain(it) } ?: emptyList()

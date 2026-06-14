@@ -13,13 +13,10 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
     val srtId = MutableStateFlow(store.srtId)
     val srtPw = MutableStateFlow(store.srtPw)
-    val ktxId = MutableStateFlow(store.ktxId)
-    val ktxPw = MutableStateFlow(store.ktxPw)
     val pollInterval: StateFlow<Int> = MutableStateFlow(store.pollIntervalSeconds)
 
-    fun save(srtId: String, srtPw: String, ktxId: String, ktxPw: String, interval: Int) {
+    fun save(srtId: String, srtPw: String, interval: Int) {
         store.srtId = srtId; store.srtPw = srtPw
-        store.ktxId = ktxId; store.ktxPw = ktxPw
         store.pollIntervalSeconds = interval.coerceIn(15, 60)
     }
 }

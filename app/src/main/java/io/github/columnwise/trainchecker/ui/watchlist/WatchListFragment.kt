@@ -26,14 +26,17 @@ class WatchListFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {
-        val adapter = WatchJobAdapter { job ->
-            vm.cancel(job) { jobId ->
-                requireContext().startService(Intent(requireContext(), TicketWatcherService::class.java).apply {
-                    action = TicketWatcherService.ACTION_STOP
-                    putExtra(TicketWatcherService.EXTRA_JOB_ID, jobId)
-                })
-            }
-        }
+        val adapter = WatchJobAdapter(
+            onCancel = { job ->
+                vm.cancel(job) { jobId ->
+                    requireContext().startService(Intent(requireContext(), TicketWatcherService::class.java).apply {
+                        action = TicketWatcherService.ACTION_STOP
+                        putExtra(TicketWatcherService.EXTRA_JOB_ID, jobId)
+                    })
+                }
+            },
+            onDelete = { job -> vm.delete(job) }
+        )
         b.recyclerView.adapter = adapter
 
         viewLifecycleOwner.lifecycleScope.launch {

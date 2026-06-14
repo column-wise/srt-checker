@@ -1,16 +1,21 @@
 package io.github.columnwise.trainchecker.ui.watchlist
 
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import io.github.columnwise.trainchecker.data.model.TrainType
 import io.github.columnwise.trainchecker.data.model.WatchJob
 import io.github.columnwise.trainchecker.data.model.WatchStatus
 import io.github.columnwise.trainchecker.databinding.ItemWatchJobBinding
 
 class WatchJobAdapter(
     private val onCancel: (WatchJob) -> Unit,
+    private val onDelete: (WatchJob) -> Unit,
 ) : ListAdapter<WatchJob, WatchJobAdapter.VH>(DIFF) {
 
     inner class VH(private val b: ItemWatchJobBinding) : RecyclerView.ViewHolder(b.root) {
@@ -23,9 +28,23 @@ class WatchJobAdapter(
                 WatchStatus.FAILED -> "❌ 실패"
                 WatchStatus.CANCELLED -> "🚫 취소됨"
             }
-            b.root.setOnLongClickListener {
-                if (job.status == WatchStatus.WATCHING) onCancel(job)
-                true
+
+            if (job.status == WatchStatus.WATCHING) {
+                b.btnDelete.visibility = View.GONE
+                b.root.setOnLongClickListener { onCancel(job); true }
+                b.root.setOnClickListener(null)
+            } else {
+                b.btnDelete.visibility = View.VISIBLE
+                b.btnDelete.setOnClickListener { onDelete(job) }
+                b.root.setOnLongClickListener(null)
+                if (job.status == WatchStatus.SUCCESS) {
+                    val url = if (job.trainType == TrainType.SRT) "https://etk.srail.kr" else "https://www.letskorail.com"
+                    b.root.setOnClickListener {
+                        it.context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                } else {
+                    b.root.setOnClickListener(null)
+                }
             }
         }
     }

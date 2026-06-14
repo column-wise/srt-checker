@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 import io.github.columnwise.trainchecker.MainActivity
 import io.github.columnwise.trainchecker.R
@@ -48,10 +49,10 @@ class NotificationHelper @Inject constructor(
             .build()
     }
 
-    fun notifySuccess(title: String, detail: String) {
+    fun notifySuccess(title: String, detail: String, url: String) {
         val pi = PendingIntent.getActivity(
-            ctx, 0, Intent(ctx, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
+            ctx, 0, Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val notif = NotificationCompat.Builder(ctx, CHANNEL_RESULT)
             .setSmallIcon(R.drawable.ic_train)

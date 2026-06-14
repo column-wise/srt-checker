@@ -3,7 +3,7 @@ package io.github.columnwise.trainchecker.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class TrainType { SRT, KTX }
+enum class TrainType { SRT }
 enum class SeatType { GENERAL, SPECIAL, ANY }
 enum class WatchStatus { WATCHING, SUCCESS, FAILED, CANCELLED }
 

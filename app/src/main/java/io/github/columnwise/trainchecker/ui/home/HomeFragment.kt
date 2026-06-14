@@ -5,8 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.google.android.material.tabs.TabLayoutMediator
+import io.github.columnwise.trainchecker.R
 import io.github.columnwise.trainchecker.databinding.FragmentHomeBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,13 +19,11 @@ class HomeFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, s: Bundle?) {
-        b.viewPager.adapter = object : FragmentStateAdapter(this) {
-            override fun getItemCount() = 2
-            override fun createFragment(pos: Int) = if (pos == 0) SrtFormFragment() else KtxFormFragment()
+        if (childFragmentManager.findFragmentById(R.id.homeContainer) == null) {
+            childFragmentManager.beginTransaction()
+                .replace(R.id.homeContainer, SrtFormFragment())
+                .commit()
         }
-        TabLayoutMediator(b.tabLayout, b.viewPager) { tab, pos ->
-            tab.text = if (pos == 0) "SRT" else "KTX"
-        }.attach()
     }
 
     override fun onDestroyView() { super.onDestroyView(); _b = null }

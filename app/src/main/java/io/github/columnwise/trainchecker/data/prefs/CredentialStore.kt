@@ -26,14 +26,6 @@ class CredentialStore @Inject constructor(@ApplicationContext ctx: Context) {
         get() = prefs.getString("srt_pw", "") ?: ""
         set(v) = prefs.edit().putString("srt_pw", v).apply()
 
-    var ktxId: String
-        get() = prefs.getString("ktx_id", "") ?: ""
-        set(v) = prefs.edit().putString("ktx_id", v).apply()
-
-    var ktxPw: String
-        get() = prefs.getString("ktx_pw", "") ?: ""
-        set(v) = prefs.edit().putString("ktx_pw", v).apply()
-
     var pollIntervalSeconds: Int
         get() = prefs.getInt("poll_interval", 15)
         set(v) = prefs.edit().putInt("poll_interval", v).apply()

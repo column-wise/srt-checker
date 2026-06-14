@@ -6,8 +6,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Filter
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -19,6 +24,7 @@ import io.github.columnwise.trainchecker.data.prefs.CredentialStore
 import io.github.columnwise.trainchecker.databinding.FragmentSrtFormBinding
 import io.github.columnwise.trainchecker.service.TicketWatcherService
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -45,12 +51,47 @@ class SrtFormFragment : Fragment() {
         b.actvArr.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, stations))
 
         val seatTypes = listOf("일반실" to SeatType.GENERAL, "특실" to SeatType.SPECIAL, "상관없음" to SeatType.ANY)
-        b.actvSeatType.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, seatTypes.map { it.first }))
+        b.actvSeatType.setAdapter(noFilterAdapter(seatTypes.map { it.first }))
         b.actvSeatType.setText("일반실", false)
 
         setupTimeDropdowns()
         setupDatePicker()
         setupClearErrors()
+
+        b.btnSwap.setOnClickListener {
+            val dep = b.actvDep.text.toString()
+            val arr = b.actvArr.text.toString()
+            b.actvDep.setText(arr, false)
+            b.actvArr.setText(dep, false)
+            b.tilDep.error = null
+            b.tilArr.error = null
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                vm.topRoutes().collect { routes ->
+                    b.chipGroupRoutes.removeAllViews()
+                    if (routes.isEmpty()) {
+                        b.chipGroupRoutes.visibility = View.GONE
+                    } else {
+                        b.chipGroupRoutes.visibility = View.VISIBLE
+                        routes.forEach { (dep, arr) ->
+                            val chip = Chip(requireContext()).apply {
+                                text = "$dep → $arr"
+                                isClickable = true
+                                setOnClickListener {
+                                    b.actvDep.setText(dep, false)
+                                    b.actvArr.setText(arr, false)
+                                    b.tilDep.error = null
+                                    b.tilArr.error = null
+                                }
+                            }
+                            b.chipGroupRoutes.addView(chip)
+                        }
+                    }
+                }
+            }
+        }
 
         b.btnStart.setOnClickListener { onStartClicked(seatTypes) }
     }
@@ -58,17 +99,23 @@ class SrtFormFragment : Fragment() {
     private fun setupTimeDropdowns() {
         val hours = (0..23).map { h -> "%02d:00".format(h) to "%02d00".format(h) }
         val hourLabels = hours.map { it.first }
-        b.actvTimeFrom.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, hourLabels))
+        b.actvTimeFrom.setAdapter(noFilterAdapter(hourLabels))
         b.actvTimeFrom.setText("00:00", false)
 
         val toOptions = listOf("제한 없음" to "") + hours
-        b.actvTimeTo.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, toOptions.map { it.first }))
+        b.actvTimeTo.setAdapter(noFilterAdapter(toOptions.map { it.first }))
         b.actvTimeTo.setText("제한 없음", false)
 
         b.actvTimeFrom.setOnItemClickListener { _, _, _, _ -> b.tilTimeFrom.error = null }
     }
 
     private fun setupDatePicker() {
+        val today = Calendar.getInstance()
+        val fmtVal = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val fmtDisplay = SimpleDateFormat("yyyy년 MM월 dd일", Locale.getDefault())
+        selectedDate = fmtVal.format(today.time)
+        b.etDate.setText(fmtDisplay.format(today.time))
+
         val openPicker = View.OnClickListener {
             val constraints = CalendarConstraints.Builder()
                 .setValidator(DateValidatorPointForward.now())
@@ -76,6 +123,7 @@ class SrtFormFragment : Fragment() {
             val picker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("날짜 선택")
                 .setCalendarConstraints(constraints)
+                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
                 .build()
             picker.addOnPositiveButtonClickListener { millis ->
                 val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
@@ -124,6 +172,16 @@ class SrtFormFragment : Fragment() {
             if (firstError == null) firstError = b.actvTimeFrom
         } else b.tilTimeFrom.error = null
 
+        val timeToLabel = b.actvTimeTo.text.toString().trim()
+        if (timeToLabel != "제한 없음" && timeFromLabel.isNotEmpty() && timeToLabel.isNotEmpty()) {
+            val fromHour = timeFromLabel.substringBefore(":").toIntOrNull() ?: 0
+            val toHour = timeToLabel.substringBefore(":").toIntOrNull() ?: 0
+            if (fromHour >= toHour) {
+                b.tilTimeFrom.error = "종료 시간보다 앞서야 합니다"
+                if (firstError == null) firstError = b.actvTimeFrom
+            }
+        }
+
         if (firstError != null) { firstError.requestFocus(); return }
 
         if (creds.srtId.isEmpty() || creds.srtPw.isEmpty()) {
@@ -131,20 +189,35 @@ class SrtFormFragment : Fragment() {
             return
         }
 
-        // "HH:mm" → "HHmm"
         val timeFrom = timeFromLabel.replace(":", "")
-        val timeToLabel = b.actvTimeTo.text.toString()
         val timeTo = if (timeToLabel == "제한 없음") "" else timeToLabel.replace(":", "")
 
         val seatIdx = seatTypes.indexOfFirst { it.first == b.actvSeatType.text.toString() }
         val seatType = if (seatIdx >= 0) seatTypes[seatIdx].second else SeatType.GENERAL
-        vm.startWatch(TrainType.SRT, dep, arr, selectedDate, timeFrom, timeTo, seatType) { jobId ->
-            requireContext().startForegroundService(Intent(requireContext(), TicketWatcherService::class.java).apply {
-                action = TicketWatcherService.ACTION_START
-                putExtra(TicketWatcherService.EXTRA_JOB_ID, jobId)
-            })
-        }
+        vm.startWatch(TrainType.SRT, dep, arr, selectedDate, timeFrom, timeTo, seatType,
+            onAlreadyWatching = {
+                Snackbar.make(requireView(), "이미 감시 중입니다. 감시 목록에서 중지 후 다시 시도하세요", Snackbar.LENGTH_LONG).show()
+            },
+            onDuplicate = {
+                Snackbar.make(requireView(), "이미 같은 조건으로 감시 중입니다", Snackbar.LENGTH_LONG).show()
+            },
+            onJobId = { jobId ->
+                requireContext().startForegroundService(Intent(requireContext(), TicketWatcherService::class.java).apply {
+                    action = TicketWatcherService.ACTION_START
+                    putExtra(TicketWatcherService.EXTRA_JOB_ID, jobId)
+                })
+            }
+        )
     }
+
+    private fun noFilterAdapter(items: List<String>) =
+        object : ArrayAdapter<String>(requireContext(), android.R.layout.simple_dropdown_item_1line, items) {
+            private val noFilter = object : Filter() {
+                override fun performFiltering(c: CharSequence?) = FilterResults().apply { values = items; count = items.size }
+                override fun publishResults(c: CharSequence?, r: FilterResults?) { notifyDataSetChanged() }
+            }
+            override fun getFilter() = noFilter
+        }
 
     override fun onDestroyView() { super.onDestroyView(); _b = null }
 }

@@ -9,23 +9,38 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/tvRoute"
-            android:layout_width="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleSmall" />
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/tvDetail"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceLabelSmall" />
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tvRoute"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceTitleSmall" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tvDetail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
+        </LinearLayout>
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="삭제"
+            android:visibility="gone" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

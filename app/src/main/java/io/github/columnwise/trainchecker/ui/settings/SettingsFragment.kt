@@ -29,8 +29,6 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.etSrtId.setText(vm.srtId.value)
         binding.etSrtPw.setText(vm.srtPw.value)
-        binding.etKtxId.setText(vm.ktxId.value)
-        binding.etKtxPw.setText(vm.ktxPw.value)
         binding.etInterval.setText(vm.pollInterval.value.toString())
 
         binding.btnSave.setOnClickListener {
@@ -38,8 +36,6 @@ class SettingsFragment : Fragment() {
             vm.save(
                 srtId = binding.etSrtId.text.toString(),
                 srtPw = binding.etSrtPw.text.toString(),
-                ktxId = binding.etKtxId.text.toString(),
-                ktxPw = binding.etKtxPw.text.toString(),
                 interval = interval,
             )
             Snackbar.make(view, "저장됨", Snackbar.LENGTH_SHORT).show()
@@ -52,7 +48,6 @@ class SettingsFragment : Fragment() {
                 AppLogger.logs.collect { lines ->
                     val text = if (lines.isEmpty()) "(로그 없음)" else lines.joinToString("\n")
                     binding.tvLog.text = text
-                    // 최신 로그로 자동 스크롤
                     binding.logScrollView.post {
                         binding.logScrollView.fullScroll(View.FOCUS_DOWN)
                     }
