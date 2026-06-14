@@ -11,9 +11,11 @@ import androidx.fragment.app.viewModels
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.snackbar.Snackbar
 import io.github.columnwise.trainchecker.data.api.srt.SRT_STATION_CODE
 import io.github.columnwise.trainchecker.data.model.SeatType
 import io.github.columnwise.trainchecker.data.model.TrainType
+import io.github.columnwise.trainchecker.data.prefs.CredentialStore
 import io.github.columnwise.trainchecker.databinding.FragmentSrtFormBinding
 import io.github.columnwise.trainchecker.service.TicketWatcherService
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,9 +23,12 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SrtFormFragment : Fragment() {
+    @Inject lateinit var creds: CredentialStore
+
     private var _b: FragmentSrtFormBinding? = null
     private val b get() = _b!!
     private val vm: HomeViewModel by viewModels({ requireParentFragment() })
@@ -112,6 +117,11 @@ class SrtFormFragment : Fragment() {
 
         if (firstError != null) {
             firstError.requestFocus()
+            return
+        }
+
+        if (creds.srtId.isEmpty() || creds.srtPw.isEmpty()) {
+            Snackbar.make(requireView(), "설정 탭에서 SRT 아이디/비밀번호를 먼저 입력하세요", Snackbar.LENGTH_LONG).show()
             return
         }
 

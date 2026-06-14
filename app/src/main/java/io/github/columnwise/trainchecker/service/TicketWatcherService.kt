@@ -74,22 +74,30 @@ class TicketWatcherService : Service() {
     }
 
     private suspend fun watchLoop(watchJob: WatchJob) {
+        val tag = "${watchJob.trainType}#${watchJob.id}"
         val intervalMs = creds.pollIntervalSeconds * 1000L
 
+        AppLogger.log(tag, "로그인 시도...")
         val loginOk = when (watchJob.trainType) {
             TrainType.SRT -> srtRepo.login(creds.srtId, creds.srtPw)
             TrainType.KTX -> ktxRepo.login(creds.ktxId, creds.ktxPw)
         }
         if (!loginOk) {
+            AppLogger.log(tag, "로그인 실패")
             dao.updateStatus(watchJob.id, WatchStatus.FAILED, null, System.currentTimeMillis())
             notif.notifyError("로그인 실패 — 설정에서 로그인 정보를 확인하세요")
+            jobs.remove(watchJob.id)
+            if (jobs.isEmpty()) stopSelf()
             return
         }
+        AppLogger.log(tag, "로그인 성공. 감시 시작 (${watchJob.depStation}→${watchJob.arrStation} ${watchJob.date})")
 
         while (true) {
             try {
-                val result = attemptReserve(watchJob)
+                AppLogger.log(tag, "열차 조회 중...")
+                val result = attemptReserve(watchJob, tag)
                 if (result != null) {
+                    AppLogger.log(tag, "예약 성공! 예약번호: $result")
                     dao.updateStatus(watchJob.id, WatchStatus.SUCCESS, result, System.currentTimeMillis())
                     notif.notifySuccess(
                         "예약 완료!",
@@ -98,30 +106,34 @@ class TicketWatcherService : Service() {
                     jobs.remove(watchJob.id)
                     if (jobs.isEmpty()) stopSelf()
                     return
+                } else {
+                    AppLogger.log(tag, "취소표 없음. ${creds.pollIntervalSeconds}초 후 재시도")
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // network error — retry
+                AppLogger.log(tag, "오류: ${e.message}")
             }
             delay(intervalMs)
         }
     }
 
-    private suspend fun attemptReserve(watchJob: WatchJob): String? {
+    private suspend fun attemptReserve(watchJob: WatchJob, tag: String): String? {
         return when (watchJob.trainType) {
             TrainType.SRT -> {
                 val trains = srtRepo.searchTrains(
                     watchJob.depStation, watchJob.arrStation,
                     watchJob.date, watchJob.timeFrom,
                 )
-                val candidate = trains.firstOrNull { t ->
-                    t.seatAvailable(watchJob.seatType) &&
-                    (watchJob.timeTo.isEmpty() || t.depTime <= "${watchJob.timeTo}00")
-                } ?: return null
+                AppLogger.log(tag, "SRT 조회 결과: ${trains.size}개 열차")
+                val available = trains.filter { it.seatAvailable(watchJob.seatType) &&
+                    (watchJob.timeTo.isEmpty() || it.depTime <= "${watchJob.timeTo}00") }
+                AppLogger.log(tag, "취소표 가능: ${available.size}개")
+                val candidate = available.firstOrNull() ?: return null
+                AppLogger.log(tag, "예약 시도: ${candidate.depTime} 열차")
                 when (val r = srtRepo.reserve(candidate, watchJob.seatType)) {
                     is SrtResult.Success -> r.reservationNo
-                    is SrtResult.Error -> null
+                    is SrtResult.Error -> { AppLogger.log(tag, "예약 실패: ${r.message}"); null }
                 }
             }
             TrainType.KTX -> {
@@ -129,13 +141,15 @@ class TicketWatcherService : Service() {
                     watchJob.depStation, watchJob.arrStation,
                     watchJob.date, watchJob.timeFrom,
                 )
-                val candidate = trains.firstOrNull { t ->
-                    t.seatAvailable(watchJob.seatType) &&
-                    (watchJob.timeTo.isEmpty() || t.raw.h_dpt_tm <= "${watchJob.timeTo}00")
-                } ?: return null
+                AppLogger.log(tag, "KTX 조회 결과: ${trains.size}개 열차")
+                val available = trains.filter { it.seatAvailable(watchJob.seatType) &&
+                    (watchJob.timeTo.isEmpty() || it.raw.h_dpt_tm <= "${watchJob.timeTo}00") }
+                AppLogger.log(tag, "취소표 가능: ${available.size}개")
+                val candidate = available.firstOrNull() ?: return null
+                AppLogger.log(tag, "예약 시도: ${candidate.raw.h_dpt_tm} 열차")
                 when (val r = ktxRepo.reserve(candidate, watchJob.seatType)) {
                     is KtxResult.Success -> r.reservationNo
-                    is KtxResult.Error -> null
+                    is KtxResult.Error -> { AppLogger.log(tag, "예약 실패: ${r.message}"); null }
                 }
             }
         }
