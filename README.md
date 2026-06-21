@@ -1,7 +1,5 @@
 # SRT 취소표 감시기
 
-![GitHub Downloads](https://img.shields.io/github/downloads/column-wise/srt-checker/total?style=flat-square&label=Downloads)
-
 SRT 취소표를 자동으로 감시하여 빈 좌석이 생기면 즉시 예약을 시도하는 Android 앱.
 
 ## 기능
